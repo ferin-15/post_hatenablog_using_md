@@ -274,7 +274,7 @@ def translate_markdown_to_hatena_md(textname, headers):
                         photoname += s[i]
 
             # 行末にspace2つを追加 ただし```cppとかのあとに入れるとsyntax highlightが消えるのでいれない
-            if s[:6] == '```':
+            if s[:3] == '```':
                 blog_body += '\n'
             else:
                 blog_body += '  \n'
