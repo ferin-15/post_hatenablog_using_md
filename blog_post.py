@@ -206,21 +206,10 @@ def translate_markdown_to_hatena_md(textname, headers):
     
     return blog_title, blog_category, blog_body
 
-# 入力: 1行目がタイトルで2行目がカテゴリ，4行目以降が本文であるようなmarkdown 
-# 出力: はてなブログのAtomPubに経由で投稿できるXML
-# 変換してる内容
-#   数式： $a+b$ → [tex:a+b] と $$a+b$$ → [tex: \displaystyle a+b] に対応  
-#   画像： \img{photopath} で画像をuploadして対応する画像のidで置き換え
-#   XMLでエスケープする必要がある < > & " ' を書き換える
 # バグるけど無視していること
 #   $とか\img{}が本文に普通に出てくるパターン
 #   画像のファイル名に$とか{}入ってたりする(これ可能だっけ？)
 #   パースが雑なので多分色々バグる
-# 参考
-#   https://saibaimen.hatenadiary.jp/entry/2018/08/23/010627
-#   https://teratail.com/questions/140918
-#   http://developer.hatena.ne.jp/ja/documents/fotolife/apis/atom
-#   https://fftester06.hatenablog.com/entry/2019/11/19/181821
 def main():
     # api_key などを取得
     api_key_path = os.path.join(os.path.dirname(__file__), 'api_key.json')
