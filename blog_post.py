@@ -273,8 +273,8 @@ def translate_markdown_to_hatena_md(textname, headers):
                     else:
                         photoname += s[i]
 
-            # 行末にspace2つを追加 ただし```cppのあとに入れるとsyntax highlightが消えるのでいれない
-            if s[:6] == '```cpp':
+            # 行末にspace2つを追加 ただし```cppとかのあとに入れるとsyntax highlightが消えるのでいれない
+            if s[:6] == '```':
                 blog_body += '\n'
             else:
                 blog_body += '  \n'
