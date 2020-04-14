@@ -26,7 +26,7 @@ markdownを用いてはてなブログへ投稿する
 ```--nodraft``` を ```entry.md``` のあとに追加することで実際に投稿されるようになります
 
 ## 例
-```md
+````md
 # Educational Codeforces Round 2 D. Area of Two Circles' Intersection
 tag: codeforces
 
@@ -50,7 +50,7 @@ using PII = pair<ll, ll>;
 #define FOR(i, a, n) for (ll i = (ll)a; i < (ll)n; ++i)
 #define REP(i, n) FOR(i, 0, n)
 // 以下略
-```  
 ```
+````
 
 ![使用例](https://github.com/ferin-15/post_hatenablog_using_md/blob/master/example.png)
