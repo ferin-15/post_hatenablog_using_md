@@ -1,0 +1,2 @@
+# post_hatenablog_using_md
+markdownを用いてはてなブログへ投稿する
