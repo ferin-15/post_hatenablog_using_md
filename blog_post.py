@@ -111,8 +111,6 @@ def translate_markdown_to_hatena_md(textname, headers):
     blog_body = ''
     row = 0
     state = status.main_body
-    # is_in_inline_math = False
-    # is_in_block_math = False
     with open(textname) as f:
         for s in f.read().splitlines():
             # 1行目はタイトル，2行目はカテゴリ，3行目はスルー
@@ -129,7 +127,6 @@ def translate_markdown_to_hatena_md(textname, headers):
                 continue
             
             skip = False
-            photo_flag = False
             alt_text = ''
             photoname = ''
             for i in range(len(s)):
