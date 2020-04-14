@@ -22,7 +22,6 @@ def create_wsse_header(username, api_key):
     c = 'UsernameToken Username="{0}", PasswordDigest="{1}", Nonce="{2}", Created="{3}"'
     return c.format(username, b64encode(b_digest).decode(), b64encode(b_nonce).decode(), created)
 
-# ToDo: カテゴリ複数
 # http://developer.hatena.ne.jp/ja/documents/blog/apis/atom に従ってxmlの形式にする
 def translate_hatena_md_to_xml(title, category, body, username, draft):
     template = """\
@@ -130,7 +129,6 @@ def translate_markdown_to_hatena_md(textname, headers):
                     continue
                 # 画像関連のパース
                 # \img{photopath} の \img を検出する
-                # markdownの画像の記法のパース面倒そうだったから適当にやっちゃった
                 if i>=4 and s[i-4:i]=='\img':
                     photo_flag = True
                 elif photo_flag == True:
@@ -146,8 +144,6 @@ def translate_markdown_to_hatena_md(textname, headers):
                     else:
                         photoname += s[i]
                 # 数式関連のパース 
-                # 適当実装なので「$a+b$$c+d$」とかあると多分バグる
-                # markdownのパースってどうするといいんだ…？
                 elif i+1<len(s) and s[i:i+2]=='$$':
                     if is_in_block_math == False:
                         blog_body += '[tex: \displaystyle'
@@ -206,10 +202,6 @@ def translate_markdown_to_hatena_md(textname, headers):
     
     return blog_title, blog_category, blog_body
 
-# バグるけど無視していること
-#   $とか\img{}が本文に普通に出てくるパターン
-#   画像のファイル名に$とか{}入ってたりする(これ可能だっけ？)
-#   パースが雑なので多分色々バグる
 def main():
     # api_key などを取得
     api_key_path = os.path.join(os.path.dirname(__file__), 'api_key.json')
