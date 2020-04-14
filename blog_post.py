@@ -12,6 +12,7 @@ from time import sleep
 import shutil
 import glob
 import json
+from enum import Enum
 
 # WSSEヘッダを作成する 
 # 詳しい仕様: http://developer.hatena.ne.jp/ja/documents/auth/apis/wsse
@@ -96,14 +97,22 @@ def post_photo(data, headers):
     idx = r.text.find('<hatena:syntax>')
     return r.text[idx+html_tag_len:idx+html_tag_len+img_tag_len]
 
+class status(Enum):
+    main_body = 0
+    inline_math = 1
+    block_math = 2
+    image_alt = 3
+    image_path = 4
+
 # markdownをはてな用に色々変換
-def translate_markdown_to_hatena_md(textname, headers):
+def translate_markdown_to_hatena_md(textname, headers):   
     blog_title = ''
     blog_category = ''
     blog_body = ''
     row = 0
-    is_in_inline_math = False
-    is_in_block_math = False
+    state = status.main_body
+    # is_in_inline_math = False
+    # is_in_block_math = False
     with open(textname) as f:
         for s in f.read().splitlines():
             # 1行目はタイトル，2行目はカテゴリ，3行目はスルー
@@ -121,79 +130,136 @@ def translate_markdown_to_hatena_md(textname, headers):
             
             skip = False
             photo_flag = False
+            alt_text = ''
             photoname = ''
             for i in range(len(s)):
                 # $$の2文字目とか1文字skipしたいとき
                 if skip:
                     skip = False
                     continue
-                # 画像関連のパース
-                # \img{photopath} の \img を検出する
-                if i>=4 and s[i-4:i]=='\img':
-                    photo_flag = True
-                elif photo_flag == True:
-                    if s[i]=='}':
-                        blog_body = blog_body[:-4]  # \img を消す
+                # 状態遷移
+                if state == status.main_body:
+                    if i+1<len(s) and s[i:i+2] == '$$':
+                        blog_body += '[tex: \displaystyle'
+                        state = status.block_math
+                        skip = True
+                    elif s[i] == '$':
+                        blog_body += '[tex:'
+                        state = status.inline_math
+                    elif i+1<len(s) and s[i:i+2] == '![':
+                        state = status.image_alt
+                        skip = True
+                    elif s[i]=='<':
+                        blog_body += '&lt;'
+                    elif s[i]=='>':
+                        if i==0:
+                            blog_body += '>'
+                        else:
+                            blog_body += '&gt;'
+                    elif s[i]=='[':
+                        blog_body += '['
+                    elif s[i]==']':
+                        blog_body += ']'
+                    elif s[i]=='&':
+                        blog_body += '&amp;'
+                    elif s[i]=='\"':
+                        blog_body += '&quot;'
+                    elif s[i]=='\'':
+                        blog_body += '&apos;'
+                    else:
+                        blog_body += s[i]
+                elif state == status.inline_math:
+                    if s[i] == '$':
+                        blog_body += ']'
+                        state = status.main_body
+                    elif s[i] == '^' or s[i] == '_':
+                        blog_body += '\\' + s[i]
+                    elif s[i]=='<':
+                        blog_body += ' \lt '
+                    elif s[i]=='>':
+                        blog_body += ' \gt '
+                    elif s[i]=='[':
+                        blog_body += ' \lbrack '
+                    elif s[i]==']':
+                        blog_body += ' \\rbrack ' # \rがCRと認識されないように\\r
+                    elif s[i]=='&':
+                        blog_body += '&amp;'
+                    elif s[i]=='\"':
+                        blog_body += '&quot;'
+                    elif s[i]=='\'':
+                        blog_body += '&apos;'
+                    else:
+                        blog_body += s[i]
+                elif state == status.block_math:
+                    if i+1<len(s) and s[i:i+2] == '$$':
+                        blog_body += ']'
+                        state = status.main_body
+                        skip = True
+                    elif s[i] == '^' or s[i] == '_':
+                        blog_body += '\\' + s[i]
+                    elif s[i]=='<':
+                        blog_body += ' \lt '
+                    elif s[i]=='>':
+                        blog_body += ' \gt '
+                    elif s[i]=='[':
+                        blog_body += ' \lbrack '
+                    elif s[i]==']':
+                        blog_body += ' \\rbrack ' # \rがCRと認識されないように\\r
+                    elif s[i]=='&':
+                        blog_body += '&amp;'
+                    elif s[i]=='\"':
+                        blog_body += '&quot;'
+                    elif s[i]=='\'':
+                        blog_body += '&apos;'
+                    else:
+                        blog_body += s[i]
+                elif state == status.image_alt:
+                    if i+1<len(s) and s[i:i+2]=='](':
+                        state = status.image_path
+                        skip = True
+                    elif s[i]=='<':
+                        alt_text += '&lt;'
+                    elif s[i]=='>':
+                        alt_text += '&gt;'
+                    elif s[i]=='[':
+                        alt_text += '['
+                    elif s[i]==']':
+                        alt_text += ']'
+                    elif s[i]=='&':
+                        alt_text += '&amp;'
+                    elif s[i]=='\"':
+                        alt_text += '&quot;'
+                    elif s[i]=='\'':
+                        alt_text += '&apos;'
+                    else:
+                        alt_text += s[i] 
+                elif state == status.image_path:
+                    if s[i]==')':
+                        state = status.main_body
                         print("""{0} の投稿を開始""".format(photoname))
                         data = translate_photo_to_xml(photoname)
                         imageid = post_photo(data, headers)
-                        print("""投稿に成功\n画像のidは[{1}]""".format(photoname, imageid))
-                        blog_body += """[{0}]""".format(imageid)
+                        print("""投稿に成功\n画像のidは[{0}:alt={1}]""".format(imageid, alt_text))
+                        blog_body += """[{0}:alt={1}]""".format(imageid, alt_text)
                         photoname = ''
-                        photo_flag = False
+                        alt_text = ''
+                    elif s[i]=='<':
+                        photoname += '&lt;'
+                    elif s[i]=='>':
+                        photoname += '&gt;'
+                    elif s[i]=='[':
+                        photoname += '['
+                    elif s[i]==']':
+                        photoname += ']'
+                    elif s[i]=='&':
+                        photoname += '&amp;'
+                    elif s[i]=='\"':
+                        photoname += '&quot;'
+                    elif s[i]=='\'':
+                        photoname += '&apos;'
                     else:
-                        photoname += s[i]
-                # 数式関連のパース 
-                elif i+1<len(s) and s[i:i+2]=='$$':
-                    if is_in_block_math == False:
-                        blog_body += '[tex: \displaystyle'
-                        is_in_block_math = True
-                        skip = True
-                    else:
-                        blog_body += ']'
-                        is_in_block_math = False
-                        skip = True
-                elif s[i]=='$' and is_in_block_math == False:
-                    if is_in_inline_math == False:
-                        blog_body += '[tex:'
-                        is_in_inline_math = True
-                    else:
-                        blog_body += ']'
-                        is_in_inline_math = False
-                elif (is_in_inline_math or is_in_block_math) and (s[i]=='_' or s[i]=='^'):
-                    blog_body += '\\' + s[i]
-                # HTMLの特殊文字のエスケープ
-                elif s[i]=='<':
-                    if is_in_inline_math or is_in_block_math:
-                        blog_body += ' \lt ' # 数式中
-                    else:
-                        blog_body += '&lt;'  # 数式外
-                elif s[i]=='>':
-                    if i==0:
-                        blog_body += '>'     # 引用の記号
-                    elif is_in_inline_math or is_in_block_math:
-                        blog_body += ' \gt ' # 数式中
-                    else:
-                        blog_body += '&gt;'  # 数式外
-                elif s[i]=='[':
-                    if is_in_inline_math or is_in_block_math:
-                        blog_body += ' \lbrack ' # 数式中
-                    else:
-                        blog_body += '['         # 数式外
-                elif s[i]==']':
-                    if is_in_inline_math or is_in_block_math:
-                        blog_body += ' \\rbrack ' # 数式中 \rがCRと認識されないように\\r
-                    else:
-                        blog_body += ']'          # 数式外
-                elif s[i]=='&':
-                    blog_body += '&amp;'
-                elif s[i]=='\"':
-                    blog_body += '&quot;'
-                elif s[i]=='\'':
-                    blog_body += '&apos;'
-                # そのまま追加
-                else:
-                    blog_body += s[i]
+                        photoname += s[i]                
+
             # 行末にspace2つを追加 ただし```cppのあとに入れるとsyntax highlightが消えるのでいれない
             if s[:6] == '```cpp':
                 blog_body += '\n'
