@@ -151,7 +151,7 @@ def translate_markdown_to_hatena_md(textname, headers):
                 # 状態遷移
                 if state == status.main_body:
                     if i + 1 < len(s) and s[i:i + 2] == '$$':
-                        blog_body += '[tex: \displaystyle'
+                        blog_body += '[tex: \displaystyle '
                         state = status.block_math
                         skip = True
                     elif s[i] == '$':
